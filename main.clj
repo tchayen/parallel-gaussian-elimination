@@ -1,48 +1,58 @@
+(ns clotw)
 (require '[clojure.string :as str])
 
 (defn read-input [path]
-  (let [parse-line (fn [line] (str/split line #" "))
-        lines (->>
-                path
-                (clojure.java.io/reader)
-                line-seq)
-        n (->>
-            lines
-            first
-            Integer/parseInt)
-        a (->>
-            lines
-            (drop 1)
-            (map parse-line)
-            (take n)
-            (into []))
-        r (->>
-            lines
-            last
-            parse-line
-            (into []))]
-    (println {:n n :a a :r r})))
+  (let [parse-line (fn [line] (map read-string (str/split line #" ")))
+        lines (->> path (clojure.java.io/reader) line-seq)
+        n (->> lines first Integer/parseInt)
+        a (->> lines (drop 1) (map parse-line) (take n) to-array-2d)
+        r (->> lines last parse-line to-array)]
+    {:n n :a a :r r}))
 
-; (defn scalar [i j a]
-;   )
+(defn scalar [i j a s] (aset s i (/ (aget a i j) (aget a j j))))
 
-; (defn zeroes [i j a s]
-;   )
+(defn zeroes [i j a s]
+  (dotimes [k (alength a)]
+    (aset a j k (- (aget a j k) (* (get s i) (aget a i k))))))
 
-; (defn division [i a r]
-;   )
+(defn division [i a r]
+  (aset r i (/ (aget r i) (aget a i i)))
+  (aset a i i 1))
 
-; (let [func #(println "t")
-;       threads (repeatedly 5 #(Thread. func))]
-;   (run! #(.start %) threads)
-;   (println "running...")
-;   (run! #(.join %) threads)
-;   (println "finish"))
+(defn -main [& args]
+  (let [data (read-input "input.txt")
+        scalars (->> (data :n) (range 0) to-array)]
+    (dotimes [j (data :n)]
+      (let [threads
+            (->>
+              (range 0 (data :n))
+              (filter #(not= % j))
+              (map #(fn [] (scalar % j (data :a) scalars)))
+              (map #(Thread. %)))]
+        ; (doseq [i (seq threads)] (i))
+        (run! #(.start %) threads)
+        (run! #(.join %) threads))
 
+      (let [threads
+            (->>
+              (range 0 (data :n))
+              (filter #(not= % j))
+              (map #(fn [] (zeroes % j (data :a) scalars)))
+              (map #(Thread. %)))]
+        (run! #(.start %) threads)
+        (run! #(.join %) threads))
 
+      (let [threads
+            (->>
+              (range 0 (data :n))
+              (filter #(not= % j))
+              (map #(fn [] (division % (data :a) (data :r))))
+              (map #(Thread. %)))]
+        (run! #(.start %) threads)
+        (run! #(.join %) threads))
+    )
 
-(let [n (Integer/parseInt (read-line))]
-  (dotimes [i n]
-    (read-line)))
-
-    (with-open [rdr (clojure.java.io/reader "input.txt")] (reduce conj [] (line-seq rdr)))
+        (-> scalars seq println)
+        (->> (data :a) seq (map seq) println)
+        (-> (data :r) seq println)
+        ))
