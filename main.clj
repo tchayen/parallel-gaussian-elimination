@@ -13,11 +13,11 @@
 
 (defn output [data]
   (spit
-    "output.txt"
-    (str
-      (prn-str (data :n))
-      (->> (data :a) seq (map stringify-array) (str/join))
-      (stringify-array (data :r)))))
+   "output.txt"
+   (str
+    (prn-str (data :n))
+    (->> (data :a) seq (map stringify-array) (str/join))
+    (stringify-array (data :r)))))
 
 (defn scalar [i j a s] (aset s i (/ (aget a i j) (aget a j j))))
 
@@ -29,12 +29,7 @@
 (defn division [i a r] (aset r i (/ (aget r i) (aget a i i))) (aset a i i 1))
 
 (defn go [n fu fi]
-  (let [threads
-        (->>
-          (range 0 n)
-          (filter fi)
-          (map fu)
-          (map #(Thread. %)))]
+  (let [threads (->> (range 0 n) (filter fi) (map fu) (map #(Thread. %)))]
     (run! #(.start %) threads)
     (run! #(.join %) threads)))
 
