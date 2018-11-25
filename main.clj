@@ -1,23 +1,24 @@
 (ns clotw)
 (require '[clojure.string :as str])
 
+(defn parse-line [line] (map read-string (str/split line #" ")))
+
 (defn read-input [path]
-  (let [parse-line (fn [line] (map read-string (str/split line #" ")))
-        lines (->> path (clojure.java.io/reader) line-seq)
+  (let [lines (->> path (clojure.java.io/reader) line-seq)
         n (->> lines first Integer/parseInt)
         a (->> lines (drop 1) (map parse-line) (take n) to-array-2d)
         r (->> lines last parse-line to-array)]
     {:n n :a a :r r}))
 
-(defn stringify-array [a] (-> a seq prn-str (str/replace #"[\(\)]" "")))
+(defn stringify [a] (-> a seq prn-str (str/replace #"[\(\)]" "")))
 
 (defn output [data]
   (spit
    "output.txt"
    (str
     (prn-str (data :n))
-    (->> (data :a) seq (map stringify-array) (str/join))
-    (stringify-array (data :r)))))
+    (->> (data :a) seq (map stringify) (str/join))
+    (stringify (data :r)))))
 
 (defn scalar [i j a s] (aset s i (/ (aget a i j) (aget a j j))))
 
