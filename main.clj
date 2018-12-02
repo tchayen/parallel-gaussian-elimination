@@ -22,10 +22,12 @@
 
 (defn scalar [i j a s] (aset s i (/ (aget a i j) (aget a j j))))
 
-(defn zeroes [i j a s r]
-  (dotimes [k (alength a)]
-    (aset a j k (- (aget a j k) (* s (aget a i k)))))
+(defn subtraction-row [i j a s r]
+  (go (alength a) (fn [k] (fn [] (subtraction a i j k s))) pass-all)
   (aset r j (- (aget r j) (* s (aget r i)))))
+
+(defn subtraction [a i j k s]
+  (aset a j k (- (aget a j k) (* s (aget a i k)))))
 
 (defn division [i a r] (aset r i (/ (aget r i) (aget a i i))) (aset a i i 1))
 
@@ -33,6 +35,8 @@
   (let [threads (->> (range 0 n) (filter fi) (map fu) (map #(Thread. %)))]
     (run! #(.start %) threads)
     (run! #(.join %) threads)))
+
+(defn pass-all [_] true)
 
 (defn -main [& args]
   (let [data (read-input "input.txt")
@@ -44,7 +48,7 @@
         (fn [i] (not= i j)))
       (go
         (data :n)
-        (fn [i] (fn [] (zeroes j i (data :a) (aget scalars i) (data :r))))
+        (fn [i] (fn [] (subtraction-row j i (data :a) (aget scalars i) (data :r))))
         (fn [i] (not= i j))))
-    (go (data :n) (fn [i] (fn [] (division i (data :a) (data :r)))) (fn [i] true))
+    (go (data :n) (fn [i] (fn [] (division i (data :a) (data :r)))) pass-all)
     (output data)))
