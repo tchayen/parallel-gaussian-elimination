@@ -20,35 +20,43 @@
     (->> (data :a) seq (map stringify) (str/join))
     (stringify (data :r)))))
 
-(defn scalar [i j a s] (aset s i (/ (aget a i j) (aget a j j))))
+(defn run-parallel [fns]
+  (let [threads (map #(Thread. %) fns)]
+    (run! #(.start %) threads)
+    (run! #(.join %) threads)))
 
-(defn subtraction-row [i j a s r]
-  (go (alength a) (fn [k] (fn [] (subtraction a i j k s))) pass-all)
-  (aset r j (- (aget r j) (* s (aget r i)))))
+(defn scalar [i j a s] (aset s i (/ (aget a i j) (aget a j j))))
 
 (defn subtraction [a i j k s]
   (aset a j k (- (aget a j k) (* s (aget a i k)))))
 
+(defn subtraction-row [i j a s r]
+  (->>
+    (range 0 (alength a))
+    (map (fn [k] (fn [] (subtraction a i j k s))))
+    run-parallel
+    )
+  (aset r j (- (aget r j) (* s (aget r i)))))
+
 (defn division [i a r] (aset r i (/ (aget r i) (aget a i i))) (aset a i i 1))
 
-(defn go [n fu fi]
-  (let [threads (->> (range 0 n) (filter fi) (map fu) (map #(Thread. %)))]
-    (run! #(.start %) threads)
-    (run! #(.join %) threads)))
-
-(defn pass-all [_] true)
-
-(defn -main [& args]
+(defn runn [& args]
   (let [data (read-input "input.txt")
-        scalars (->> (data :n) (range 0) to-array)]
+        scalars (->> (data :n) (range 0) to-array)
+        n (data :n) a (data :a) r (data :r)]
     (dotimes [j (data :n)]
-      (go
-        (data :n)
-        (fn [i] (fn [] (scalar i j (data :a) scalars)))
-        (fn [i] (not= i j)))
-      (go
-        (data :n)
-        (fn [i] (fn [] (subtraction-row j i (data :a) (aget scalars i) (data :r))))
-        (fn [i] (not= i j))))
-    (go (data :n) (fn [i] (fn [] (division i (data :a) (data :r)))) pass-all)
+      (->>
+        (range 0 n)
+        (filter (fn [i] (not= i j)))
+        (map (fn [i] (fn [] (scalar i j a scalars))))
+        run-parallel)
+      (->>
+        (range 0 n)
+        (filter (fn [i] (not= i j)))
+        (map (fn [i] (fn [] (subtraction-row j i a (aget scalars i) r))))
+        run-parallel))
+    (->>
+      (range 0 n)
+      (map (fn [i] (fn [] (division i a r))))
+      run-parallel)
     (output data)))
