@@ -9,7 +9,7 @@ Run `lein repl` in this directory and call:
 
 ```clojure
 (load-file "main.clj")
-(clotw/-main)
+(clotw/start)
 ```
 
 ## Running

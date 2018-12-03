@@ -31,16 +31,16 @@
   (aset a j k (- (aget a j k) (* s (aget a i k)))))
 
 (defn subtraction-row [i j a s r]
-  (->>
-    (range 0 (alength a))
-    (map (fn [k] (fn [] (subtraction a i j k s))))
-    run-parallel
-    )
-  (aset r j (- (aget r j) (* s (aget r i)))))
+  (run-parallel
+    (conj
+      (->>
+        (range 0 (alength a))
+        (map (fn [k] (fn [] (subtraction a i j k s)))))
+      (fn [] (aset r j (- (aget r j) (* s (aget r i))))))))
 
 (defn division [i a r] (aset r i (/ (aget r i) (aget a i i))) (aset a i i 1))
 
-(defn runn [& args]
+(defn start [& args]
   (let [data (read-input "input.txt")
         scalars (->> (data :n) (range 0) to-array)
         n (data :n) a (data :a) r (data :r)]
